@@ -2,13 +2,20 @@ spring:
   profiles:
     active: local   #개인 apllication-local.yml 만들어서 개발용으로 사용 <- 꼭 gitignore에 추가할것
 
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+      - org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration
+
 server:
   port: 8080
-  servlet:
-    context-path: /api
+
 
 logging:
   level:
     root: info
     org.springframework.web: debug
     org.hibernate.SQL: debug
+

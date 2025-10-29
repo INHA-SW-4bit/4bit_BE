@@ -1,4 +1,6 @@
 package org.example.nextchallenge.attendance.entity;
 
-public class SessionStatus {
+public enum SessionStatus {
+    ACTIVE,
+    CLOSED
 }
