@@ -1,7 +1,7 @@
 package org.example.nextchallenge.attendance.service;
 
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import org.example.nextchallenge.attendance.dto.WifiConnectVerifyRequestDto;
 import org.example.nextchallenge.attendance.dto.WifiConnectVerifyResponseDto;
 import org.springframework.stereotype.Service;
 
@@ -9,25 +9,19 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class AttendanceService {
 
-    public WifiConnectVerifyResponseDto verifyWifiConnection(Long lectureId, WifiConnectVerifyRequestDto requestDto) {
-        System.out.println("📡 받은 IP: " + requestDto.getPublicIp());
-
-        String publicIp = requestDto.getPublicIp();
-
-        if (publicIp == null || publicIp.isEmpty()) {
-            return WifiConnectVerifyResponseDto.builder()
-                    .valid(false)
-                    .detectedIp(null)
-                    .build();
+    public WifiConnectVerifyResponseDto verifyWifiConnection(Long lectureId, HttpServletRequest request) {
+        // ✅ IP 추출 로직
+        String clientIp = request.getHeader("X-Forwarded-For");
+        if (clientIp == null || clientIp.isEmpty() || "unknown".equalsIgnoreCase(clientIp)) {
+            clientIp = request.getRemoteAddr();
         }
 
-        // 인하대학교 eduroam 공용 IP 대역
-        String allowedPrefix = "165.246.";
-        boolean isValid = publicIp.startsWith(allowedPrefix);
+        System.out.println("📡 감지된 클라이언트 IP: " + clientIp);
 
+        boolean isValid = clientIp.startsWith("165.246.");
         return WifiConnectVerifyResponseDto.builder()
                 .valid(isValid)
-                .detectedIp(publicIp)
+                .detectedIp(clientIp)
                 .build();
     }
 }
