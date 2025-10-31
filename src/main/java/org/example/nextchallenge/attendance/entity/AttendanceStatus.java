@@ -1,4 +1,7 @@
 package org.example.nextchallenge.attendance.entity;
 
-public class AttendanceStatus {
+public enum AttendanceStatus {
+    ATTENDED,
+    LATE,
+    ABSENT
 }
