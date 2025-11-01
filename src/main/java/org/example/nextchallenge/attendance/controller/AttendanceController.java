@@ -2,9 +2,7 @@ package org.example.nextchallenge.attendance.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import org.example.nextchallenge.attendance.dto.CheckRequestDto;
-import org.example.nextchallenge.attendance.dto.CheckResponseDto;
-import org.example.nextchallenge.attendance.dto.WifiConnectVerifyResponseDto;
+import org.example.nextchallenge.attendance.dto.*;
 import org.example.nextchallenge.attendance.service.AttendanceService;
 import org.example.nextchallenge.user.details.CustomUserDetails;
 import org.springframework.http.ResponseEntity;
@@ -50,4 +48,14 @@ public class AttendanceController {
 
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping("/start")
+    public ResponseEntity<CodeCreateResponseDto> createAttendanceSession(
+            @PathVariable Long lectureId,
+            @RequestBody CodeCreateRequestDto requestDto
+    ) {
+        CodeCreateResponseDto response = attendanceService.createAttendanceSession(lectureId, requestDto);
+        return ResponseEntity.ok(response);
+    }
+
 }

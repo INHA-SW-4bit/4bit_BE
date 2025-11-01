@@ -2,11 +2,10 @@ package org.example.nextchallenge.attendance.service;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import org.example.nextchallenge.attendance.dto.CheckRequestDto;
-import org.example.nextchallenge.attendance.dto.CheckResponseDto;
-import org.example.nextchallenge.attendance.dto.WifiConnectVerifyResponseDto;
+import org.example.nextchallenge.attendance.dto.*;
 import org.example.nextchallenge.attendance.entity.AttendanceRecord;
 import org.example.nextchallenge.attendance.entity.AttendanceSession;
+import org.example.nextchallenge.attendance.entity.SessionStatus;
 import org.example.nextchallenge.attendance.repository.AttendanceRecordRepository;
 import org.example.nextchallenge.attendance.repository.AttendanceSessionRepository;
 import org.example.nextchallenge.lecture.entity.Lecture;
@@ -19,6 +18,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Random;
 
 @Service
 @RequiredArgsConstructor
@@ -85,6 +86,39 @@ public class AttendanceService {
                 .RowNumber(seat.getRowNumber())
                 .ColNumber(seat.getColNumber())
                 .attendanceTime(LocalDateTime.now())
+                .build();
+    }
+
+
+    /**
+     교수 : 출석코드 생성*/
+    @Transactional
+    public CodeCreateResponseDto createAttendanceSession(Long lectureId, CodeCreateRequestDto dto) {
+
+        Lecture lecture = lectureRepository.findById(lectureId).get();
+
+        // 100~999 사이 랜덤 출석 코드
+        String attendanceCode = String.valueOf(new Random().nextInt(900) + 100);
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime endTime = now.plusMinutes(dto.getDurationMinutes());
+
+        // 세션 생성 및 저장
+        AttendanceSession session = AttendanceSession.builder()
+                .lecture(lecture)
+                .attendanceCode(attendanceCode)
+                .status(SessionStatus.ACTIVE)
+                .startTime(now)
+                .endTime(endTime)
+                .build();
+
+        sessionRepository.save(session);
+
+        return CodeCreateResponseDto.builder()
+                .lectureId(lectureId)
+                .attendanceCode(attendanceCode)
+                .status("ACTIVE")
+                .endTime(endTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
                 .build();
     }
 }
