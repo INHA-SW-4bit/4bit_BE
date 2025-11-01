@@ -8,5 +8,5 @@ import org.example.nextchallenge.attendance.entity.SessionStatus;
 import java.util.Optional;
 
 public interface AttendanceSessionRepository extends JpaRepository<AttendanceSession, Long> {
-    Optional<AttendanceSession> findByLectureIdAndStatus(Lecture lecture, SessionStatus status);
+    Optional<AttendanceSession> findByLectureAndAttendanceCode(Lecture lecture, String attendanceCode);
 }
