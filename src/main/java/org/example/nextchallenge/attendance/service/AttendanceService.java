@@ -106,6 +106,7 @@ public class AttendanceService {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime endTime = now.plusMinutes(dto.getDurationMinutes());
 
+
         // 세션 생성 및 저장
         AttendanceSession session = AttendanceSession.builder()
                 .lecture(lecture)
@@ -197,11 +198,14 @@ public class AttendanceService {
         }
 
         // 3. 학생 정보 DTO로 반환
+        User user = record.getUser();
+        Integer grade = user.getGrade();
+
         return SeatStudentDetailDto.builder()
-                .name(record.getUser().getUsername())
-                .studentId(record.getUser().getLoginId())
-                .grade(record.getUser().getGrade())
-                .profileImageUrl(record.getUser().getProfileImageUrl())
+                .name(user.getUsername())
+                .studentId(user.getLoginId())
+                .grade(grade != null ? grade : 0)
+                .profileImageUrl(user.getProfileImageUrl())
                 .attendanceStatus(record.getStatus().name())
                 .build();
     }

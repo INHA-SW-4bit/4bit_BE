@@ -1,9 +1,9 @@
 package org.example.nextchallenge.security;
 
 import lombok.Getter;
-import org.example.nextchallenge.user.entity.Role;
 import org.example.nextchallenge.user.entity.User;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
@@ -12,39 +12,59 @@ import java.util.List;
 @Getter
 public class CustomUserDetails implements UserDetails {
 
-    private final Long userId;
-    private final String loginId;
-    private final String password;
-    private final Role role;
+    private final User user;
 
     public CustomUserDetails(User user) {
-        this.userId = user.getId();
-        this.loginId = user.getLoginId();
-        this.password = user.getPassword();
-        this.role = user.getRole();
+        this.user = user;
     }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(() -> "ROLE_" + role.name());
+        // ✅ ROLE_ prefix 반드시 붙여야 Spring이 인식함
+        return List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
     }
 
     @Override
     public String getPassword() {
-        return password;
+        return user.getPassword();
     }
 
     @Override
     public String getUsername() {
-        return loginId;
+        return user.getLoginId();
     }
 
     @Override
-    public boolean isAccountNonExpired() { return true; }
+    public boolean isAccountNonExpired() {
+        return true;
+    }
+
     @Override
-    public boolean isAccountNonLocked() { return true; }
+    public boolean isAccountNonLocked() {
+        return true;
+    }
+
     @Override
-    public boolean isCredentialsNonExpired() { return true; }
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
+
     @Override
-    public boolean isEnabled() { return true; }
+    public boolean isEnabled() {
+        return true;
+    }
+
+    public String getLoginId() {
+        return user.getLoginId();
+    }
+
+    public Enum<?> getRole() {
+        return user.getRole();
+    }
+
+    public Long getUserId() {
+        return user.getId();
+    }
+
+
 }

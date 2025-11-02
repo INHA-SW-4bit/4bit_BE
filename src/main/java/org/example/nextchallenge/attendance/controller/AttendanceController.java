@@ -4,7 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.example.nextchallenge.attendance.dto.*;
 import org.example.nextchallenge.attendance.service.AttendanceService;
-import org.example.nextchallenge.user.details.CustomUserDetails;
+import org.example.nextchallenge.security.CustomUserDetails;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
