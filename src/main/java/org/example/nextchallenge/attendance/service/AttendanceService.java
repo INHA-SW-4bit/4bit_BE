@@ -19,7 +19,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Map;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -143,4 +146,63 @@ public class AttendanceService {
                 .build();
     }
 
+    /**
+     * 모든 좌석 출석 상태 불러오기
+     * */
+    public List<SeatAttendanceStatusDto> getLectureRoomStatus(Long lectureId) {
+        // 1. 전체 좌석 불러오기
+        List<Seat> seats = seatRepository.findAllByLectureId(lectureId);
+
+        // 2. 해당 강의의 모든 출석 기록 불러오기
+        List<AttendanceRecord> attendanceRecords = recordRepository.findAllByLectureId(lectureId);
+
+        // 3. 출석한 좌석 ID → 출석 상태 맵핑
+        Map<Long, String> attendanceMap = attendanceRecords.stream()
+                .collect(Collectors.toMap(
+                        record -> record.getSeat().getId(),
+                        record -> record.getStatus().name(),
+                        (oldValue, newValue) -> newValue // 중복시 마지막 값 유지
+                ));
+
+        // 4. 좌석 + 출석상태 합쳐서 DTO로 변환
+        return seats.stream()
+                .map(seat -> SeatAttendanceStatusDto.builder()
+                        .seatId(seat.getId())
+                        .row(seat.getRowNumber())
+                        .col(seat.getColNumber())
+                        .attendanceStatus(attendanceMap.getOrDefault(seat.getId(), "ABSENT"))
+                        .build())
+                .toList();
+    }
+
+    /**
+     * 특정좌석의 학생정보 가져오기
+     * */
+    public SeatStudentDetailDto getSeatStudentDetail(Long lectureId, Long seatId) {
+        // 1. 좌석 정보 가져오기
+        Seat seat = seatRepository.findById(seatId).orElseThrow();
+
+        // 2. 해당 좌석에 출석한 기록 찾기 (가장 최근)
+        AttendanceRecord record = recordRepository.findByLectureIdAndSeatId(lectureId, seatId)
+                .orElse(null);
+
+        if (record == null || record.getUser() == null) {
+            return SeatStudentDetailDto.builder()
+                    .name(null)
+                    .studentId(null)
+                    .grade(0)
+                    .profileImageUrl(null)
+                    .attendanceStatus("ABSENT")
+                    .build();
+        }
+
+        // 3. 학생 정보 DTO로 반환
+        return SeatStudentDetailDto.builder()
+                .name(record.getUser().getUsername())
+                .studentId(record.getUser().getLoginId())
+                .grade(record.getUser().getGrade())
+                .profileImageUrl(record.getUser().getProfileImageUrl())
+                .attendanceStatus(record.getStatus().name())
+                .build();
+    }
 }

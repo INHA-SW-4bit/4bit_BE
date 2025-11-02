@@ -9,6 +9,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/lectures/{lectureId}/attendance")
 @RequiredArgsConstructor
@@ -64,4 +66,21 @@ public class AttendanceController {
         AttendanceEndResponseDto response = attendanceService.endAttendanceSession(requestDto);
         return ResponseEntity.ok(response);
     }
+
+
+    @GetMapping("/status")
+    public List<SeatAttendanceStatusDto> getStatus(
+            @PathVariable Long lectureId
+    ) {
+        return attendanceService.getLectureRoomStatus(lectureId);
+    }
+
+    @GetMapping("/seat/{seatId}")
+    public SeatStudentDetailDto getSeatDetail(
+            @PathVariable Long lectureId,
+            @PathVariable Long seatId
+    ) {
+        return attendanceService.getSeatStudentDetail(lectureId, seatId);
+    }
+
 }
