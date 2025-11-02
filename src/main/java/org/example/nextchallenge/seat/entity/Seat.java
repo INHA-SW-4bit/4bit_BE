@@ -26,10 +26,10 @@ public class Seat {
     @JoinColumn(name = "lecture_id", nullable = false)
     private Lecture lecture;
 
-    @Column(name = "row_number", nullable = false)
+    @Column(name = "seat_row_number", nullable = false)
     private int rowNumber;
 
-    @Column(name = "col_number", nullable = false)
+    @Column(name = "seat_col_number", nullable = false)
     private int colNumber;
 
     @Builder.Default
@@ -45,4 +45,15 @@ public class Seat {
     @Builder.Default
     @OneToMany(mappedBy = "seat", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<AttendanceRecord> attendanceRecords = new ArrayList<>();
+
+    //assignStudent 메서드
+    public void assignStudent(User user) {
+        this.student = user;
+        this.occupied = true;
+    }
+
+    // seat 위치 문자열 반환용
+    public String getLocation() {
+        return rowNumber + "-" + colNumber;
+    }
 }
