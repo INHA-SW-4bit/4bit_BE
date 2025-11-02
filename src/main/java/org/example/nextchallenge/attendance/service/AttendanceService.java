@@ -98,7 +98,13 @@ public class AttendanceService {
     @Transactional
     public CodeCreateResponseDto createAttendanceSession(Long lectureId, CodeCreateRequestDto dto) {
 
-        Lecture lecture = lectureRepository.findById(lectureId).get();
+        Lecture lecture = lectureRepository.findById(lectureId)
+                .orElseThrow(() -> new RuntimeException("Lecture not found: " + lectureId));
+
+        // 이미 ACTIVE 상태인 세션이 있는지 확인
+        if (sessionRepository.findByLectureAndStatus(lecture, SessionStatus.ACTIVE).isPresent()) {
+            throw new RuntimeException("이미 진행 중인 출석 세션이 있습니다. 기존 세션을 먼저 종료해주세요.");
+        }
 
         // 100~999 사이 랜덤 출석 코드
         String attendanceCode = String.valueOf(new Random().nextInt(900) + 100);

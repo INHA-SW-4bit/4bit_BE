@@ -11,50 +11,57 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
-// 메인 WebSocket 핸들러
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class ChatHandler extends TextWebSocketHandler {
 
     private final ChatService chatService;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
-    // 전체 연결 세션 관리
-    private final Set<WebSocketSession> sessions = ConcurrentHashMap.newKeySet();
+    // 강의실별 세션 관리: Map<lectureId, Set<WebSocketSession>>
+    private final Map<Long, Set<WebSocketSession>> lectureRooms = new ConcurrentHashMap<>();
+    // 세션이 어느 강의실에 있는지 추적: Map<WebSocketSession, lectureId>
+    private final Map<WebSocketSession, Long> sessionToLectureId = new ConcurrentHashMap<>();
 
-    // 웹소켓 연결 시 실행
+    // 연결 시
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
-        sessions.add(session);
-
-        Map<String, Object> attrs = session.getAttributes(); // JwtHandshakeInterceptor에서 저장한 사용자 정보
+        Map<String, Object> attrs = session.getAttributes();
         String loginId = (String) attrs.get("loginId");
-        String role = (String) attrs.get("role");
-
-        log.info("✅ WebSocket 연결됨: loginId={}, role={}", loginId, role);
+        log.info("✅ WebSocket 연결됨: session={}, user={}", session.getId(), loginId);
     }
 
-    // 메시지 수신 시 실행
+    // 메시지 수신
     @Override
     protected void handleTextMessage(WebSocketSession senderSession, TextMessage message) throws Exception {
-        Map<String, Object> senderAttrs = senderSession.getAttributes();
+        JsonNode node = objectMapper.readTree(message.getPayload());
+        String type = node.has("type") ? node.get("type").asText() : "CHAT";
 
+        if ("FETCH_HISTORY".equalsIgnoreCase(type)) {
+            handleFetchHistory(senderSession, node);
+            return;
+        }
+
+        // --- 기본 채팅 메시지 처리 ---
+        Map<String, Object> senderAttrs = senderSession.getAttributes();
         Long userId = (Long) senderAttrs.get("userId");
         String senderLoginId = (String) senderAttrs.get("loginId");
         String senderRole = (String) senderAttrs.get("role");
 
-        // 프론트에서 받은 JSON 파싱
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode node = mapper.readTree(message.getPayload());
         Long lectureId = node.get("lectureId").asLong();
         String content = node.get("content").asText();
 
-        // MongoDB에 메시지 저장
+        // 방 이동
+        updateSessionRoom(senderSession, lectureId);
+
+        // MongoDB 저장
         ChatMessage saved = chatService.saveMessage(
                 lectureId,
                 userId,
@@ -64,15 +71,47 @@ public class ChatHandler extends TextWebSocketHandler {
                 content
         );
 
-        // 모든 세션에 메시지 전송
-        for (WebSocketSession targetSession : sessions) {
+        broadcastMessage(lectureId, saved);
+    }
+
+    // 연결 종료
+    @Override
+    public void afterConnectionClosed(WebSocketSession session, org.springframework.web.socket.CloseStatus status) {
+        Long lectureId = sessionToLectureId.remove(session);
+        if (lectureId != null) {
+            Set<WebSocketSession> roomSessions = lectureRooms.get(lectureId);
+            if (roomSessions != null) roomSessions.remove(session);
+        }
+        log.info("❌ 연결 종료: session={}, lectureId={}", session.getId(), lectureId);
+    }
+
+    // 방 업데이트
+    private void updateSessionRoom(WebSocketSession session, Long newLectureId) {
+        Long oldLectureId = sessionToLectureId.get(session);
+        if (newLectureId.equals(oldLectureId)) return;
+
+        if (oldLectureId != null) {
+            Set<WebSocketSession> oldRoom = lectureRooms.get(oldLectureId);
+            if (oldRoom != null) oldRoom.remove(session);
+        }
+
+        lectureRooms.computeIfAbsent(newLectureId, id -> ConcurrentHashMap.newKeySet()).add(session);
+        sessionToLectureId.put(session, newLectureId);
+        log.info("➡️ 채팅방 이동: user={} -> lectureId={}", session.getAttributes().get("loginId"), newLectureId);
+    }
+
+    // 브로드캐스트
+    private void broadcastMessage(Long lectureId, ChatMessage saved) throws IOException {
+        Set<WebSocketSession> roomSessions = lectureRooms.get(lectureId);
+        if (roomSessions == null) return;
+
+        for (WebSocketSession targetSession : roomSessions) {
             if (!targetSession.isOpen()) continue;
 
             Map<String, Object> targetAttrs = targetSession.getAttributes();
             String viewerRole = (String) targetAttrs.get("role");
             String viewerLoginId = (String) targetAttrs.get("loginId");
 
-            // 교수/학생 화면별 표시 이름 처리
             String displayName = resolveDisplayNameForViewer(
                     viewerRole,
                     saved.getRole(),
@@ -80,52 +119,58 @@ public class ChatHandler extends TextWebSocketHandler {
                     saved.getSenderLoginId()
             );
 
-            // 최종 메시지 포맷 구성
             Map<String, Object> response = Map.of(
+                    "type", "CHAT",
                     "lectureId", saved.getLectureId(),
                     "messageId", saved.getId(),
                     "senderName", displayName,
                     "senderLoginId", saved.getSenderLoginId(),
                     "role", saved.getRole(),
                     "content", saved.getContent(),
-                    "createdAt", LocalDateTime.now().toString()
+                    "createdAt", saved.getCreatedAt().toString()
             );
 
-            targetSession.sendMessage(new TextMessage(mapper.writeValueAsString(response)));
+            targetSession.sendMessage(new TextMessage(objectMapper.writeValueAsString(response)));
         }
     }
 
-    // 연결 종료 시 실행
-    @Override
-    public void afterConnectionClosed(WebSocketSession session,
-                                      org.springframework.web.socket.CloseStatus status) {
-        sessions.remove(session);
-        log.info("❌ 연결 종료: {}", session.getId());
+    // 커서 기반 채팅 히스토리 조회
+    private void handleFetchHistory(WebSocketSession session, JsonNode node) throws IOException {
+        Long lectureId = node.get("lectureId").asLong();
+        String cursorStr = node.has("cursor") ? node.get("cursor").asText() : null;
+        int limit = node.has("limit") ? node.get("limit").asInt() : 20;
+
+        LocalDateTime cursor = cursorStr != null ? LocalDateTime.parse(cursorStr) : LocalDateTime.now();
+
+        List<ChatMessage> messages = chatService.findMessagesBefore(lectureId, cursor, limit);
+
+        Map<String, Object> response = Map.of(
+                "type", "HISTORY_RESULT",
+                "lectureId", lectureId,
+                "count", messages.size(),
+                "messages", messages
+        );
+
+        session.sendMessage(new TextMessage(objectMapper.writeValueAsString(response)));
+        log.info("📜 [{}] 이전 메시지 {}개 전송", lectureId, messages.size());
     }
 
-    // 교수/학생 화면 구분에 따른 이름 표시 로직
+    // 교수/학생 이름 처리
     private String resolveDisplayNameForViewer(
             String viewerRole,
             String senderRole,
             String viewerLoginId,
             String senderLoginId
     ) {
-        // 교수 화면
         if ("PROFESSOR".equalsIgnoreCase(viewerRole)) {
             if ("PROFESSOR".equalsIgnoreCase(senderRole)) return "교수님";
             if ("STUDENT".equalsIgnoreCase(senderRole))
                 return (senderLoginId != null && !senderLoginId.isBlank()) ? senderLoginId : "학생";
-            return (senderLoginId != null && !senderLoginId.isBlank()) ? senderLoginId : "사용자";
         }
-
-        // 학생 화면
         if ("STUDENT".equalsIgnoreCase(viewerRole)) {
             if ("PROFESSOR".equalsIgnoreCase(senderRole)) return "교수님";
             if ("STUDENT".equalsIgnoreCase(senderRole)) return "익명";
-            return "익명";
         }
-
-        // 예외 케이스
         return (senderLoginId != null && !senderLoginId.isBlank()) ? senderLoginId : "사용자";
     }
 }

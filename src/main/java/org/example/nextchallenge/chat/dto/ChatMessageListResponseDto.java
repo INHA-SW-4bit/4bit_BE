@@ -4,7 +4,9 @@ import lombok.Builder;
 import lombok.Getter;
 import org.example.nextchallenge.chat.document.ChatMessage;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 // 전체 채팅 목록을 반환하는 DTO
 
@@ -14,6 +16,7 @@ public class ChatMessageListResponseDto {
 
     private Long lectureId;
     private List<ChatMessageItem> messages;
+    private boolean hasMore; // 추가 메시지 여부 (무한스크롤용)
 
     @Getter
     @Builder
@@ -31,17 +34,26 @@ public class ChatMessageListResponseDto {
             List<ChatMessage> chatMessages,
             boolean isProfessorView // true면 교수, false면 학생
     ) {
+        // 1️ 최신순으로 받아온 메시지를 오래된 순으로 정렬
+        List<ChatMessageItem> sortedMessages = chatMessages.stream()
+                .sorted(Comparator.comparing(ChatMessage::getCreatedAt))
+                .map(m -> ChatMessageItem.builder()
+                        .messageId(m.getId())
+                        .senderName(resolveDisplayName(m, isProfessorView))  // 역할별 표시 이름 결정
+                        .senderLoginId(m.getSenderLoginId())                 // 내 메시지 판별용
+                        .content(m.getContent())
+                        .createdAt(m.getCreatedAt() != null ? m.getCreatedAt().toString() : "")
+                        .build())
+                .collect(Collectors.toList());
+
+        // 2️ hasMore 여부 계산 (기본 limit 30 기준)
+        boolean hasMore = chatMessages.size() >= 30;
+
+        // 3️ 최종 DTO 리턴
         return ChatMessageListResponseDto.builder()
                 .lectureId(lectureId)
-                .messages(chatMessages.stream()
-                        .map(m -> ChatMessageItem.builder()
-                                .messageId(m.getId())
-                                .senderName(resolveDisplayName(m, isProfessorView))  // 역할별 표시 이름 결정
-                                .senderLoginId(m.getSenderLoginId())                 // 내 메시지 판별용
-                                .content(m.getContent())
-                                .createdAt(m.getCreatedAt() != null ? m.getCreatedAt().toString() : "")
-                                .build())
-                        .toList())
+                .messages(sortedMessages)
+                .hasMore(hasMore)
                 .build();
     }
 

@@ -20,7 +20,7 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // ✅ ROLE_ prefix 반드시 붙여야 Spring이 인식함
+        //  ROLE_ prefix 반드시 붙여야 Spring이 인식함
         return List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
     }
 

@@ -37,15 +37,7 @@ public class AttendanceController {
             @RequestBody CheckRequestDto request,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        // JWT 미적용 상태이므로 null 방어 코드 추가
-        Long userId;
-
-        if (userDetails == null) {
-            userId = 1L; // 테스트용 기본 유저 ID
-        } else {
-            userId = userDetails.getUserId();
-        }
-
+        Long userId = userDetails.getUserId();
         CheckResponseDto response = attendanceService.checkAttendance(lectureId, request, userId);
 
         return ResponseEntity.ok(response);

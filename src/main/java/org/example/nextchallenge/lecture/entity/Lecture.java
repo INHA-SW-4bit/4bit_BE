@@ -7,6 +7,7 @@ import org.example.nextchallenge.attendance.entity.AttendanceSession;
 import org.example.nextchallenge.seat.entity.Seat;
 import org.example.nextchallenge.user.entity.User;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -49,4 +50,7 @@ public class Lecture {
     @OneToMany(mappedBy = "lecture", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<Seat> seats = new ArrayList<>();
+
+    @Column(name = "joined_at", nullable = false)
+    private LocalDateTime joinedAt = LocalDateTime.now();
 }
