@@ -1,27 +1,12 @@
 spring:
-  datasource:
-    url: jdbc:mysql://localhost:3306/nextchallenge?serverTimezone=Asia/Seoul
-    username: root
-    password: "0926"
-    driver-class-name: com.mysql.cj.jdbc.Driver
-
-  jpa:
-    database-platform: org.hibernate.dialect.MySQL8Dialect
-    hibernate:
-      ddl-auto: update
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
-
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration
-      - org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration
+  profiles:
+    active: local   #개인 apllication-local.yml 만들어서 개발용으로 사용 <- 꼭 gitignore에 추가할것
 
 server:
   port: 8080
 
 logging:
   level:
+    root: info
+    org.springframework.web: debug
     org.hibernate.SQL: debug

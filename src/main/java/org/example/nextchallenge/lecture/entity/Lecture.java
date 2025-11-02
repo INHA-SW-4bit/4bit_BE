@@ -25,23 +25,28 @@ public class Lecture {
     @Column(name = "lecture_name", nullable = false, length = 50)
     private String lectureName;
 
-    // 교수 한 명이 여러 강의 담당 → N:1 관계
+    //  교수 한 명이 여러 강의 담당 → N:1 관계
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "professor_id", nullable = false)
     private User professor;
 
-    // 강의에 속한 출석 기록
-    @Builder.Default
+    // 학생 등록 관계 (LectureStudent를 통해 N:M 관리)
     @OneToMany(mappedBy = "lecture", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<LectureStudent> lectureStudents = new ArrayList<>();
+
+    //  출석 기록
+    @OneToMany(mappedBy = "lecture", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
     private List<AttendanceRecord> attendanceRecords = new ArrayList<>();
 
-    // 강의에 속한 출석 세션
-    @Builder.Default
+    //  출석 세션
     @OneToMany(mappedBy = "lecture", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
     private List<AttendanceSession> attendanceSessions = new ArrayList<>();
 
-    // 강의에 속한 좌석
-    @Builder.Default
+    // 강의 좌석
     @OneToMany(mappedBy = "lecture", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
     private List<Seat> seats = new ArrayList<>();
 }
