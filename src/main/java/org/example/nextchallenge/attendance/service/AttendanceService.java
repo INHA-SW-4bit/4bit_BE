@@ -121,4 +121,26 @@ public class AttendanceService {
                 .endTime(endTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
                 .build();
     }
+
+    /**
+     * 교수 : 출석 종료
+     * */
+    @Transactional
+    public AttendanceEndResponseDto endAttendanceSession(AttendanceEndRequestDto requestDto) {
+        Lecture lecture = lectureRepository.findById(requestDto.getLectureId()).get();
+        AttendanceSession session = sessionRepository.findByLectureAndStatus(lecture, SessionStatus.ACTIVE).get();
+
+        // 상태 변경
+        session.setStatus(SessionStatus.CLOSED);
+        session.setEndTime(LocalDateTime.now());
+        sessionRepository.save(session);
+
+        // DTO 변환
+        return AttendanceEndResponseDto.builder()
+                .lectureId(session.getLecture().getId())
+                .status(session.getStatus().toString())
+                .endTime(session.getEndTime().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
+                .build();
+    }
+
 }

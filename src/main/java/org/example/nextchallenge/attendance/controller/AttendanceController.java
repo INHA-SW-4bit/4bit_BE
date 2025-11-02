@@ -58,4 +58,10 @@ public class AttendanceController {
         return ResponseEntity.ok(response);
     }
 
+    // 출석 종료 api
+    @PostMapping("/end")
+    public ResponseEntity<AttendanceEndResponseDto> endAttendance(@RequestBody AttendanceEndRequestDto requestDto) {
+        AttendanceEndResponseDto response = attendanceService.endAttendanceSession(requestDto);
+        return ResponseEntity.ok(response);
+    }
 }
