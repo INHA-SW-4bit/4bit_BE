@@ -26,12 +26,13 @@ public class LectureStudent {
     @JoinColumn(name = "student_id", nullable = false)
     private User student;
 
-    // ✅ 수강신청일
+    // 수강신청일
     @Builder.Default
     @Column(nullable = false)
     private java.time.LocalDateTime joinedAt = java.time.LocalDateTime.now();
 
-    // ✅ 상태 (추후 확장용)
+
+    // 상태 (추후 확장용)
     @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
