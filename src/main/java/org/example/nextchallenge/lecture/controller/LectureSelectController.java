@@ -22,6 +22,7 @@ public class LectureSelectController {
         Long userId = userDetails.getUserId();
         String role = userDetails.getRole().name();
 
+        // service 내부에서 findByStudents_Id()로 바뀜
         return lectureService.getLecturesByUser(userId, role);
     }
 }

@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface LectureRepository extends JpaRepository<Lecture, Long> {
-    List<Lecture> findByProfessorId(Long professorId); // 교수용
-    List<Lecture> findByAttendanceRecords_User_Id(Long userId); // 학생용
+
+    // 교수가 담당하는 강의 조회
+    List<Lecture> findByProfessorId(Long professorId);
 }

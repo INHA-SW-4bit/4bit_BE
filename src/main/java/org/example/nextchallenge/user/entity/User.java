@@ -2,8 +2,11 @@ package org.example.nextchallenge.user.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.example.nextchallenge.lecture.entity.LectureStudent;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "users")
@@ -44,4 +47,8 @@ public class User {
         this.createdAt = LocalDateTime.now();
     }
 
+    //  학생이 수강 중인 강의 목록 (LectureStudent 통해 연결)
+    @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<LectureStudent> lectureStudents = new ArrayList<>();
 }
