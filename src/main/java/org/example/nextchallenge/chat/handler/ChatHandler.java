@@ -13,9 +13,10 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.Map;
+import java.util.Set;
+import java.util.LinkedHashMap;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -29,6 +30,11 @@ public class ChatHandler extends TextWebSocketHandler {
     private final Map<Long, Set<WebSocketSession>> lectureRooms = new ConcurrentHashMap<>();
     // 세션이 어느 강의실에 있는지 추적: Map<WebSocketSession, lectureId>
     private final Map<WebSocketSession, Long> sessionToLectureId = new ConcurrentHashMap<>();
+
+    // 강의별 익명 매핑: Map<lectureId, Map<loginId, 익명번호>>
+    private final Map<Long, Map<String, Integer>> lectureAnonymousMap = new ConcurrentHashMap<>();
+    // 강의별 익명 카운터
+    private final Map<Long, Integer> lectureAnonymousCounter = new ConcurrentHashMap<>();
 
     // 연결 시
     @Override
@@ -44,6 +50,7 @@ public class ChatHandler extends TextWebSocketHandler {
         JsonNode node = objectMapper.readTree(message.getPayload());
         String type = node.has("type") ? node.get("type").asText() : "CHAT";
 
+        // 과거 메시지 불러오기 요청
         if ("FETCH_HISTORY".equalsIgnoreCase(type)) {
             handleFetchHistory(senderSession, node);
             return;
@@ -71,6 +78,7 @@ public class ChatHandler extends TextWebSocketHandler {
                 content
         );
 
+        // 같은 강의실 모두에게 브로드캐스트
         broadcastMessage(lectureId, saved);
     }
 
@@ -80,22 +88,33 @@ public class ChatHandler extends TextWebSocketHandler {
         Long lectureId = sessionToLectureId.remove(session);
         if (lectureId != null) {
             Set<WebSocketSession> roomSessions = lectureRooms.get(lectureId);
-            if (roomSessions != null) roomSessions.remove(session);
+            if (roomSessions != null) {
+                roomSessions.remove(session);
+            }
         }
         log.info("❌ 연결 종료: session={}, lectureId={}", session.getId(), lectureId);
     }
 
-    // 방 업데이트
+    // 채팅방 업데이트
     private void updateSessionRoom(WebSocketSession session, Long newLectureId) {
         Long oldLectureId = sessionToLectureId.get(session);
-        if (newLectureId.equals(oldLectureId)) return;
-
-        if (oldLectureId != null) {
-            Set<WebSocketSession> oldRoom = lectureRooms.get(oldLectureId);
-            if (oldRoom != null) oldRoom.remove(session);
+        if (newLectureId.equals(oldLectureId)) {
+            return;
         }
 
-        lectureRooms.computeIfAbsent(newLectureId, id -> ConcurrentHashMap.newKeySet()).add(session);
+        // 기존 방에서 제거
+        if (oldLectureId != null) {
+            Set<WebSocketSession> oldRoom = lectureRooms.get(oldLectureId);
+            if (oldRoom != null) {
+                oldRoom.remove(session);
+            }
+        }
+
+        // 새 방에 추가
+        lectureRooms
+                .computeIfAbsent(newLectureId, id -> ConcurrentHashMap.newKeySet())
+                .add(session);
+
         sessionToLectureId.put(session, newLectureId);
         log.info("➡️ 채팅방 이동: user={} -> lectureId={}", session.getAttributes().get("loginId"), newLectureId);
     }
@@ -103,32 +122,38 @@ public class ChatHandler extends TextWebSocketHandler {
     // 브로드캐스트
     private void broadcastMessage(Long lectureId, ChatMessage saved) throws IOException {
         Set<WebSocketSession> roomSessions = lectureRooms.get(lectureId);
-        if (roomSessions == null) return;
+        if (roomSessions == null) {
+            return;
+        }
 
         for (WebSocketSession targetSession : roomSessions) {
-            if (!targetSession.isOpen()) continue;
+            if (!targetSession.isOpen()) {
+                continue;
+            }
 
             Map<String, Object> targetAttrs = targetSession.getAttributes();
             String viewerRole = (String) targetAttrs.get("role");
             String viewerLoginId = (String) targetAttrs.get("loginId");
 
             String displayName = resolveDisplayNameForViewer(
+                    lectureId,
                     viewerRole,
                     saved.getRole(),
                     viewerLoginId,
                     saved.getSenderLoginId()
             );
 
-            Map<String, Object> response = Map.of(
-                    "type", "CHAT",
-                    "lectureId", saved.getLectureId(),
-                    "messageId", saved.getId(),
-                    "senderName", displayName,
-                    "senderLoginId", saved.getSenderLoginId(),
-                    "role", saved.getRole(),
-                    "content", saved.getContent(),
-                    "createdAt", saved.getCreatedAt().toString()
-            );
+            Map<String, Object> response = new LinkedHashMap<>();
+            response.put("type", "CHAT");
+            response.put("lectureId", saved.getLectureId());
+            response.put("messageId", saved.getId());
+            response.put("senderName", displayName);
+            response.put("senderLoginId", saved.getSenderLoginId());
+            response.put("role", saved.getRole());
+            response.put("content", saved.getContent());
+            response.put("createdAt", saved.getCreatedAt() != null ? saved.getCreatedAt().toString() : "");
+            // 내 메시지인지 여부
+            response.put("mine", viewerLoginId != null && viewerLoginId.equals(saved.getSenderLoginId()));
 
             targetSession.sendMessage(new TextMessage(objectMapper.writeValueAsString(response)));
         }
@@ -140,37 +165,69 @@ public class ChatHandler extends TextWebSocketHandler {
         String cursorStr = node.has("cursor") ? node.get("cursor").asText() : null;
         int limit = node.has("limit") ? node.get("limit").asInt() : 20;
 
-        LocalDateTime cursor = cursorStr != null ? LocalDateTime.parse(cursorStr) : LocalDateTime.now();
+        LocalDateTime cursor = (cursorStr != null)
+                ? LocalDateTime.parse(cursorStr)
+                : LocalDateTime.now();
 
-        List<ChatMessage> messages = chatService.findMessagesBefore(lectureId, cursor, limit);
+        // 서비스에서 페이지 결과 받아오기
+        ChatService.ChatPageResult result = chatService.findMessagesBefore(lectureId, cursor, limit);
 
-        Map<String, Object> response = Map.of(
-                "type", "HISTORY_RESULT",
-                "lectureId", lectureId,
-                "count", messages.size(),
-                "messages", messages
-        );
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("type", "HISTORY_RESULT");
+        response.put("lectureId", lectureId);
+        response.put("count", result.messages().size());
+        response.put("hasMore", result.hasMore());
+        response.put("messages", result.messages());
 
         session.sendMessage(new TextMessage(objectMapper.writeValueAsString(response)));
-        log.info("📜 [{}] 이전 메시지 {}개 전송", lectureId, messages.size());
+        log.info("📜 [{}] 이전 메시지 {}개 전송 (hasMore={})", lectureId, result.messages().size(), result.hasMore());
     }
 
-    // 교수/학생 이름 처리
+    // 교수/학생 이름 처리 (익명 + 번호)
     private String resolveDisplayNameForViewer(
+            Long lectureId,
             String viewerRole,
             String senderRole,
             String viewerLoginId,
             String senderLoginId
     ) {
+        // 교수 화면
         if ("PROFESSOR".equalsIgnoreCase(viewerRole)) {
-            if ("PROFESSOR".equalsIgnoreCase(senderRole)) return "교수님";
-            if ("STUDENT".equalsIgnoreCase(senderRole))
+            if ("PROFESSOR".equalsIgnoreCase(senderRole)) {
+                return "교수님";
+            }
+            if ("STUDENT".equalsIgnoreCase(senderRole)) {
                 return (senderLoginId != null && !senderLoginId.isBlank()) ? senderLoginId : "학생";
+            }
         }
+
+        // 학생 화면 (익명번호 부여)
         if ("STUDENT".equalsIgnoreCase(viewerRole)) {
-            if ("PROFESSOR".equalsIgnoreCase(senderRole)) return "교수님";
-            if ("STUDENT".equalsIgnoreCase(senderRole)) return "익명";
+            if ("PROFESSOR".equalsIgnoreCase(senderRole)) {
+                return "교수님";
+            }
+            if ("STUDENT".equalsIgnoreCase(senderRole)) {
+                // 강의별 익명 매핑
+                lectureAnonymousCounter.putIfAbsent(lectureId, 1);
+                Map<String, Integer> anonMap =
+                        lectureAnonymousMap.computeIfAbsent(lectureId, id -> new ConcurrentHashMap<>());
+
+                if (senderLoginId == null) {
+                    return "익명";
+                }
+
+                // 없으면 새 번호 부여
+                anonMap.computeIfAbsent(senderLoginId, k -> {
+                    int current = lectureAnonymousCounter.get(lectureId);
+                    lectureAnonymousCounter.put(lectureId, current + 1);
+                    return current;
+                });
+
+                return "익명" + anonMap.get(senderLoginId);
+            }
         }
+
+        // 나머지
         return (senderLoginId != null && !senderLoginId.isBlank()) ? senderLoginId : "사용자";
     }
 }

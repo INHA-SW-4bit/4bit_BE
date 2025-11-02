@@ -5,12 +5,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.nextchallenge.chat.document.ChatMessage;
 import org.example.nextchallenge.chat.dto.ChatMessageListResponseDto;
 import org.example.nextchallenge.chat.service.ChatService;
+import org.example.nextchallenge.chat.service.ChatService.ChatPageResult;
 import org.example.nextchallenge.security.CustomUserDetails;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Slf4j
 @RestController
@@ -19,15 +19,6 @@ import java.util.List;
 public class ChatHistoryController {
 
     private final ChatService chatService;
-
-    /**
-     * 특정 강의의 채팅 메시지 조회 (커서 기반 지원)
-     * - cursor: ISO-8601 날짜 문자열 (예: 2025-11-02T18:00:00)
-     * - limit: 한 번에 가져올 메시지 개수 (기본 30)
-     *
-     * 요청 예시:
-     * GET /api/lectures/1/chat/messages?cursor=2025-11-02T18:00:00&limit=20
-     */
 
     @GetMapping("/messages")
     public ChatMessageListResponseDto getChatHistory(
@@ -52,9 +43,15 @@ public class ChatHistoryController {
         log.info("[ChatHistory] 커서 기반 조회 요청 - lectureId={}, loginId={}, role={}, cursor={}, limit={}",
                 lectureId, loginId, role, cursorTime, limit);
 
-        // 커서 이전 메시지 불러오기
-        List<ChatMessage> messages = chatService.findMessagesBefore(lectureId, cursorTime, limit);
+        ChatPageResult result = chatService.findMessagesBefore(lectureId, cursorTime, limit);
 
-        return ChatMessageListResponseDto.of(lectureId, messages, isProfessorView);
+        //  result 안에서 메시지와 hasMore 함께 꺼냄
+        return ChatMessageListResponseDto.of(
+                lectureId,
+                result.messages(),    // List<ChatMessage>
+                result.hasMore(),     // boolean
+                isProfessorView,
+                loginId
+        );
     }
 }
