@@ -13,8 +13,9 @@ public class WebMvcConfig {
         return new WebMvcConfigurer() {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
-                registry.addMapping("/**") // 모든 요청 허용
-                        .allowedOriginPatterns("http://localhost:3000") // ✅ React 개발 서버
+                registry.addMapping("/**")
+                        //  React 개발 서버 포트 둘 다 허용 ( 5173 / 5175)
+                        .allowedOriginPatterns("http://localhost:5173", "http://localhost:5175")
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
                         .allowCredentials(true);

@@ -7,6 +7,7 @@ import org.example.nextchallenge.auth.service.AuthService;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
+@CrossOrigin("**")
 @RequiredArgsConstructor
 @RequestMapping("/api")
 public class AuthController {
