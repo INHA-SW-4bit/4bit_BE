@@ -61,18 +61,10 @@ public class AttendanceController {
 
 
     @GetMapping("/status")
-    public List<SeatAttendanceStatusDto> getStatus(
+    public ResponseEntity<LectureAttendanceResponseDto> getLectureAttendanceStatus(
             @PathVariable Long lectureId
     ) {
-        return attendanceService.getLectureRoomStatus(lectureId);
+        LectureAttendanceResponseDto response = attendanceService.getLectureAttendance(lectureId);
+        return ResponseEntity.ok(response);
     }
-
-    @GetMapping("/seat/{seatId}")
-    public SeatStudentDetailDto getSeatDetail(
-            @PathVariable Long lectureId,
-            @PathVariable Long seatId
-    ) {
-        return attendanceService.getSeatStudentDetail(lectureId, seatId);
-    }
-
 }

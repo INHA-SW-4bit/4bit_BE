@@ -1,5 +1,7 @@
 package org.example.nextchallenge.attendance.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.example.nextchallenge.attendance.dto.*;
@@ -215,4 +217,60 @@ public class AttendanceService {
                 .attendanceStatus(record.getStatus().name())
                 .build();
     }
+
+
+    public LectureAttendanceResponseDto getLectureAttendance(Long lectureId) {
+        Lecture lecture = lectureRepository.findById(lectureId)
+                .orElseThrow(() -> new IllegalArgumentException("강의를 찾을 수 없습니다."));
+
+        // layoutJson → List<List<String>>
+        List<List<String>> layout = parseLayout(lecture.getClassroom().getLayoutJson());
+
+        // 출석 기록 가져오기
+        List<AttendanceRecord> records = recordRepository.findAllByLectureId(lectureId);
+
+        // DTO 변환
+        List<SeatAttendanceDataDto> attendanceData = records.stream()
+                .filter(record -> record.getSeat() != null && record.getUser() != null)
+                .map(record -> {
+                    Seat seat = record.getSeat();
+                    User user = record.getUser();
+
+                    SeatAttendanceStatusDto seatDto = SeatAttendanceStatusDto.builder()
+                            .seatId(seat.getId())
+                            .row(seat.getRowNumber())
+                            .col(seat.getColNumber())
+                            .attendanceStatus(record.getStatus().name())
+                            .build();
+
+                    SeatStudentDetailDto studentDto = SeatStudentDetailDto.builder()
+                            .name(user.getUsername())
+                            .studentId(user.getLoginId())
+                            .grade(user.getGrade() != null ? user.getGrade() : 0)
+                            .profileImageUrl(user.getProfileImageUrl())
+                            .attendanceStatus(record.getStatus().name())
+                            .build();
+
+                    return SeatAttendanceDataDto.builder()
+                            .seat(seatDto)
+                            .student(studentDto)
+                            .build();
+                })
+                .toList();
+
+        return LectureAttendanceResponseDto.builder()
+                .layout(layout)
+                .attendanceData(attendanceData)
+                .build();
+    }
+
+    private List<List<String>> parseLayout(String layoutJson) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            return mapper.readValue(layoutJson, new TypeReference<>() {});
+        } catch (Exception e) {
+            throw new RuntimeException("좌석 배치 JSON 파싱 오류", e);
+        }
+    }
+
 }

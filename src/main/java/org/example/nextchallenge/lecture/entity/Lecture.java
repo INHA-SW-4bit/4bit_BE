@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.example.nextchallenge.attendance.entity.AttendanceRecord;
 import org.example.nextchallenge.attendance.entity.AttendanceSession;
+import org.example.nextchallenge.classroom.entity.Classroom;
 import org.example.nextchallenge.seat.entity.Seat;
 import org.example.nextchallenge.user.entity.User;
 
@@ -53,4 +54,8 @@ public class Lecture {
 
     @Column(name = "joined_at", nullable = false)
     private LocalDateTime joinedAt = LocalDateTime.now();
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "classroom_id") // ✅ Classroom.id를 참조
+    private Classroom classroom;
 }
