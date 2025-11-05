@@ -57,7 +57,7 @@ public class ChatMessageListResponseDto {
                         .senderName(resolveDisplayName(m, isProfessorView))
                         .senderLoginId(m.getSenderLoginId())
                         .content(m.getContent() != null ? m.getContent() : "")
-                        .createdAt(m.getCreatedAt() != null ? m.getCreatedAt().format(formatter) : "")
+                        .createdAt(m.getCreatedAt() != null ? m.getCreatedAt().toString() : "")
                         .mine(isMyMessage(m.getSenderLoginId(), currentLoginId))
                         .build())
                 .collect(Collectors.toList());

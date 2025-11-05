@@ -11,7 +11,9 @@ import org.example.nextchallenge.attendance.entity.SessionStatus;
 import org.example.nextchallenge.attendance.repository.AttendanceRecordRepository;
 import org.example.nextchallenge.attendance.repository.AttendanceSessionRepository;
 import org.example.nextchallenge.lecture.entity.Lecture;
+import org.example.nextchallenge.lecture.entity.LectureStudent;
 import org.example.nextchallenge.lecture.repository.LectureRepository;
+import org.example.nextchallenge.lecture.repository.LectureStudentRepository;
 import org.example.nextchallenge.seat.entity.Seat;
 import org.example.nextchallenge.seat.repository.SeatRepository;
 import org.example.nextchallenge.user.entity.User;
@@ -35,6 +37,8 @@ public class AttendanceService {
     private final AttendanceSessionRepository sessionRepository;
     private final SeatRepository seatRepository;
     private final AttendanceRecordRepository recordRepository;
+    private final LectureStudentRepository lectureStudentRepository;
+
 
     /**
      * Wi-Fi 연결 검증
@@ -249,6 +253,7 @@ public class AttendanceService {
                             .grade(user.getGrade() != null ? user.getGrade() : 0)
                             .profileImageUrl(user.getProfileImageUrl())
                             .attendanceStatus(record.getStatus().name())
+                            .department(user.getDepartment()) //
                             .build();
 
                     return SeatAttendanceDataDto.builder()
@@ -271,6 +276,42 @@ public class AttendanceService {
         } catch (Exception e) {
             throw new RuntimeException("좌석 배치 JSON 파싱 오류", e);
         }
+    }
+
+
+
+    /**
+     * 결석자 명단
+     * */
+    @Transactional(readOnly = true)
+    public List<AbsenteeDto> getAbsentees(Long lectureId) {
+        // 수강 중인 전체 학생 목록
+        List<User> allStudents = lectureStudentRepository.findAllByLectureId(lectureId)
+                .stream()
+                .map(LectureStudent::getStudent)
+                .toList();
+
+        // 출석한 학생 목록
+        List<User> attendedStudents = recordRepository.findAllByLectureId(lectureId)
+                .stream()
+                .map(AttendanceRecord::getUser)
+                .toList();
+
+        // 결석자 목록 (차집합)
+        List<User> absentees = allStudents.stream()
+                .filter(student -> !attendedStudents.contains(student))
+                .toList();
+
+        // DTO로 변환
+        return absentees.stream()
+                .map(user -> AbsenteeDto.builder()
+                        .department(user.getDepartment())
+                        .grade(user.getGrade())
+                        .studentNumber(user.getLoginId())
+                        .name(user.getUsername())
+                        .englishName(user.getEnglishName())
+                        .build())
+                .toList();
     }
 
 }

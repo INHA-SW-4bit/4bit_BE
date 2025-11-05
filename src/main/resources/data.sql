@@ -1,8 +1,8 @@
-INSERT INTO users (id, login_id, username, password, role, grade, profile_image_url, created_at)
+INSERT INTO users (id, login_id, username, english_name, password, role, grade, department, profile_image_url, created_at)
 VALUES
-    (1, '20230724', '서영덕', '1234', 'PROFESSOR', NULL, NULL, NOW()),
-    (2, '12223757', '인덕이', '1234', 'STUDENT', 2, NULL, NOW()),
-    (3, '12223777', '인뇽이', '1234', 'STUDENT', 3, NULL, NOW());
+    (1, '20230724', '김인하', 'Inha Kim', '1234', 'PROFESSOR', NULL, NULL, NULL, NOW()),
+    (2, '12223757', '인덕이', 'Indeok', '1234', 'STUDENT', 2, '컴퓨터공학과', NULL, NOW()),
+    (3, '12223777', '인뇽이', 'Innyong', '1234', 'STUDENT', 3, '컴퓨터공학과', NULL, NOW());
 
 -- Classroom 먼저 생성
 INSERT INTO classroom (id, layout_json)

@@ -26,6 +26,10 @@ public class User {
     @Column(nullable = false, length = 50)
     private String username; // 이름
 
+    @Column(name = "english_name", length = 50)
+    private String englishName; // 영문 이름
+
+
     @Column(nullable = false)
     private String password;
 
@@ -34,6 +38,9 @@ public class User {
     private Role role; // STUDENT or PROFESSOR
 
     private Integer grade;
+
+    @Column(length = 100)
+    private String department; // 학과명
 
     @Column(name = "profile_image_url", length = 255)
     private String profileImageUrl;
