@@ -48,15 +48,15 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
                     attributes.put("loginId", loginId);
                     attributes.put("role", role);
 
-                    System.out.printf("✅ [WebSocket 인증 성공] loginId=%s, role=%s%n", loginId, role);
+                    System.out.printf("[WebSocket 인증 성공] loginId=%s, role=%s%n", loginId, role);
                     return true;
                 }
 
-                System.out.println("❌ [WebSocket 인증 실패] JWT 검증 오류");
+                System.out.println("[WebSocket 인증 실패] JWT 검증 오류");
                 return false;
             }
 
-            System.out.println("⚠️ [WebSocket 인증 실패] JWT 토큰이 전달되지 않음");
+            System.out.println("[WebSocket 인증 실패] JWT 토큰이 전달되지 않음");
             return false;
         }
 

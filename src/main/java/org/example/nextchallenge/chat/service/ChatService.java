@@ -80,7 +80,7 @@ public class ChatService {
                     .collect(Collectors.toList());
         }
 
-        // ✅ 남은 메시지가 있으면 true
+        // 남은 메시지가 있으면 true
         boolean hasMore = fetched.size() > limit;
 
         // 반환용 메시지는 limit까지만

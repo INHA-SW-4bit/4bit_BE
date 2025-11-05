@@ -41,7 +41,7 @@ public class ChatHandler extends TextWebSocketHandler {
     public void afterConnectionEstablished(WebSocketSession session) {
         Map<String, Object> attrs = session.getAttributes();
         String loginId = (String) attrs.get("loginId");
-        log.info("✅ WebSocket 연결됨: session={}, user={}", session.getId(), loginId);
+        log.info("WebSocket 연결됨: session={}, user={}", session.getId(), loginId);
     }
 
     // 메시지 수신
@@ -92,7 +92,7 @@ public class ChatHandler extends TextWebSocketHandler {
                 roomSessions.remove(session);
             }
         }
-        log.info("❌ 연결 종료: session={}, lectureId={}", session.getId(), lectureId);
+        log.info("연결 종료: session={}, lectureId={}", session.getId(), lectureId);
     }
 
     // 채팅방 업데이트
@@ -116,7 +116,7 @@ public class ChatHandler extends TextWebSocketHandler {
                 .add(session);
 
         sessionToLectureId.put(session, newLectureId);
-        log.info("➡️ 채팅방 이동: user={} -> lectureId={}", session.getAttributes().get("loginId"), newLectureId);
+        log.info("➡채팅방 이동: user={} -> lectureId={}", session.getAttributes().get("loginId"), newLectureId);
     }
 
     // 브로드캐스트
@@ -180,7 +180,7 @@ public class ChatHandler extends TextWebSocketHandler {
         response.put("messages", result.messages());
 
         session.sendMessage(new TextMessage(objectMapper.writeValueAsString(response)));
-        log.info("📜 [{}] 이전 메시지 {}개 전송 (hasMore={})", lectureId, result.messages().size(), result.hasMore());
+        log.info("[{}] 이전 메시지 {}개 전송 (hasMore={})", lectureId, result.messages().size(), result.hasMore());
     }
 
     // 교수/학생 이름 처리 (익명 + 번호)
