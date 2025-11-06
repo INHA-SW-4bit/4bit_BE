@@ -314,4 +314,21 @@ public class AttendanceService {
                 .toList();
     }
 
+    /**
+     * 현재 출석세션 상태
+     * */
+    @Transactional(readOnly = true)
+    public CurrentSessionResponseDto getCurrentSessionStatus(Long lectureId) {
+        Lecture lecture = lectureRepository.findById(lectureId)
+                .orElseThrow(() -> new IllegalArgumentException("강의를 찾을 수 없습니다."));
+
+        AttendanceSession session = sessionRepository.findByLectureAndStatus(lecture, SessionStatus.ACTIVE)
+                .orElseThrow(() -> new IllegalArgumentException("현재 활성화된 출석 세션이 없습니다."));
+
+        return CurrentSessionResponseDto.builder()
+                .status(session.getStatus().name())
+                .endTime(session.getEndTime() != null ? session.getEndTime().toString() : null)
+                .build();
+    }
+
 }

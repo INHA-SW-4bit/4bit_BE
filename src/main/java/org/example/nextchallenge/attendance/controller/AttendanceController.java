@@ -76,4 +76,13 @@ public class AttendanceController {
         return ResponseEntity.ok(response);
     }
 
+
+    @GetMapping("/session/status")
+    public ResponseEntity<CurrentSessionResponseDto> getCurrentSessionStatus(
+            @PathVariable Long lectureId
+    ) {
+        CurrentSessionResponseDto response = attendanceService.getCurrentSessionStatus(lectureId);
+        return ResponseEntity.ok(response);
+    }
+
 }
