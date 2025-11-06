@@ -17,4 +17,5 @@ import java.util.List;
 public class LectureAttendanceResponseDto {
     private List<List<String>> layout; // layoutJson 파싱 결과
     private List<SeatAttendanceDataDto> attendanceData; // 출석한 학생 좌석 정보
+
 }

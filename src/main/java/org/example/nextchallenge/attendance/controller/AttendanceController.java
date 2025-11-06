@@ -79,9 +79,11 @@ public class AttendanceController {
 
     @GetMapping("/session/status")
     public ResponseEntity<CurrentSessionResponseDto> getCurrentSessionStatus(
-            @PathVariable Long lectureId
+            @PathVariable Long lectureId,
+            @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        CurrentSessionResponseDto response = attendanceService.getCurrentSessionStatus(lectureId);
+        Long userId = userDetails.getUserId();
+        CurrentSessionResponseDto response = attendanceService.getCurrentSessionStatus(lectureId, userId);
         return ResponseEntity.ok(response);
     }
 

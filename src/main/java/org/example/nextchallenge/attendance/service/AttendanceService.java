@@ -318,7 +318,7 @@ public class AttendanceService {
      * 현재 출석세션 상태
      * */
     @Transactional(readOnly = true)
-    public CurrentSessionResponseDto getCurrentSessionStatus(Long lectureId) {
+    public CurrentSessionResponseDto getCurrentSessionStatus(Long lectureId, Long userId) {
         Lecture lecture = lectureRepository.findById(lectureId)
                 .orElseThrow(() -> new IllegalArgumentException("강의를 찾을 수 없습니다."));
 
@@ -334,9 +334,23 @@ public class AttendanceService {
                     .build();
         }
 
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        // 출석 기록 조회
+        AttendanceRecord record = recordRepository
+                .findByLectureAndUserAndSession(lecture, user, session)
+                .orElse(null);
+
+
+        String attendanceStatus = (record != null)
+                ? record.getStatus().name()
+                : "ABSENT"; // 출석기록 없으면 결석 처리
+
         return CurrentSessionResponseDto.builder()
                 .status(session.getStatus().name())
                 .endTime(session.getEndTime() != null ? session.getEndTime().toString() : null)
+                .attendanceStatus(attendanceStatus)
                 .build();
     }
 

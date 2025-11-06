@@ -8,4 +8,6 @@ import lombok.Getter;
 public class CurrentSessionResponseDto {
     private String status;     // ACTIVE / CLOSED
     private String endTime;    // ISO-8601 형식
+    private String attendanceStatus;
+
 }
