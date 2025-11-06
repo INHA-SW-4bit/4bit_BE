@@ -10,4 +10,5 @@ import java.util.Optional;
 public interface AttendanceSessionRepository extends JpaRepository<AttendanceSession, Long> {
     Optional<AttendanceSession> findByLectureAndAttendanceCode(Lecture lecture, String attendanceCode);
     Optional<AttendanceSession> findByLectureAndStatus(Lecture lecture, SessionStatus status);
+    Optional<AttendanceSession> findTopByLectureOrderByStartTimeDesc(Lecture lecture);
 }

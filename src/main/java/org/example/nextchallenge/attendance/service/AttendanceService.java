@@ -322,13 +322,23 @@ public class AttendanceService {
         Lecture lecture = lectureRepository.findById(lectureId)
                 .orElseThrow(() -> new IllegalArgumentException("강의를 찾을 수 없습니다."));
 
-        AttendanceSession session = sessionRepository.findByLectureAndStatus(lecture, SessionStatus.ACTIVE)
-                .orElseThrow(() -> new IllegalArgumentException("현재 활성화된 출석 세션이 없습니다."));
+        // 가장 최근 세션 1개만 가져오기 (ACTIVE, CLOSED 상관없이)
+        AttendanceSession session = sessionRepository.findTopByLectureOrderByStartTimeDesc(lecture)
+                .orElse(null);
+
+        if (session == null) {
+            // 세션이 아예 없을 경우 null 응답
+            return CurrentSessionResponseDto.builder()
+                    .status("NONE")
+                    .endTime(null)
+                    .build();
+        }
 
         return CurrentSessionResponseDto.builder()
                 .status(session.getStatus().name())
                 .endTime(session.getEndTime() != null ? session.getEndTime().toString() : null)
                 .build();
     }
+
 
 }
