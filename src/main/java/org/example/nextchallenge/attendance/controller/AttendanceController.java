@@ -67,4 +67,22 @@ public class AttendanceController {
         LectureAttendanceResponseDto response = attendanceService.getLectureAttendance(lectureId);
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/absentees")
+    public ResponseEntity<List<AbsenteeDto>> getAbsentees(
+            @PathVariable Long lectureId
+    ) {
+        List<AbsenteeDto> response = attendanceService.getAbsentees(lectureId);
+        return ResponseEntity.ok(response);
+    }
+
+
+    @GetMapping("/session/status")
+    public ResponseEntity<CurrentSessionResponseDto> getCurrentSessionStatus(
+            @PathVariable Long lectureId
+    ) {
+        CurrentSessionResponseDto response = attendanceService.getCurrentSessionStatus(lectureId);
+        return ResponseEntity.ok(response);
+    }
+
 }

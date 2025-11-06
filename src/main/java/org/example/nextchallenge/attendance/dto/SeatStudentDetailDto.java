@@ -11,4 +11,5 @@ public class SeatStudentDetailDto {
     private int grade;
     private String profileImageUrl;
     private String attendanceStatus; // ATTENDED, LATE, ABSENT
+    private String department;
 }
