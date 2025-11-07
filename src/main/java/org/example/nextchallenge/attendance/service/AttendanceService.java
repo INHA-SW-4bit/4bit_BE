@@ -52,7 +52,7 @@ public class AttendanceService {
         System.out.println("감지된 클라이언트 IP: " + clientIp);
 
         // 인하대 Wi-Fi 대역 예시 (165.246.*.*)
-        boolean isValid = clientIp.startsWith("165.246.");
+        boolean isValid = clientIp.startsWith("165.246."); //192.168
 
         return WifiConnectVerifyResponseDto.builder()
                 .valid(isValid)
@@ -219,6 +219,7 @@ public class AttendanceService {
                 .grade(grade != null ? grade : 0)
                 .profileImageUrl(user.getProfileImageUrl())
                 .attendanceStatus(record.getStatus().name())
+                .englishName(user.getEnglishName())
                 .build();
     }
 
@@ -254,6 +255,7 @@ public class AttendanceService {
                             .profileImageUrl(user.getProfileImageUrl())
                             .attendanceStatus(record.getStatus().name())
                             .department(user.getDepartment()) //
+                            .englishName(user.getEnglishName())
                             .build();
 
                     return SeatAttendanceDataDto.builder()

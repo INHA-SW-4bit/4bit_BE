@@ -12,4 +12,5 @@ public class SeatStudentDetailDto {
     private String profileImageUrl;
     private String attendanceStatus; // ATTENDED, LATE, ABSENT
     private String department;
+    private String englishName;
 }
